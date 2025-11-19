@@ -1,3 +1,9 @@
+export interface ProductSize {
+  id: string;
+  name: string;
+  price: number;
+}
+
 export interface Addon {
   id: string;
   name: string;
@@ -9,40 +15,54 @@ export interface Product {
   name: string;
   description: string;
   price: number;
-  image: string;
   emoji?: string;
-  category: string;
-  available: boolean;
+  categoryId: string;
+  available?: boolean;
+  sizes?: ProductSize[];
   addons?: Addon[];
-  sizes?: { id: string; name: string; price: number }[];
 }
 
 export interface CartItem {
   product: Product;
   quantity: number;
+  selectedSize?: ProductSize;
   selectedAddons?: Addon[];
-  selectedSize?: { id: string; name: string; price: number };
 }
+
+export interface UserInfo {
+  name?: string;
+  phone?: string;
+  address?: string;
+}
+
+export type DeliveryType = 'delivery' | 'pickup';
+export type PaymentMethod = 'cash' | 'online';
+
+export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'delivering' | 'completed';
 
 export interface Order {
   id: string;
   items: CartItem[];
   total: number;
-  deliveryType: 'delivery' | 'pickup';
-  paymentMethod: 'online' | 'cash';
+  deliveryType: DeliveryType;
+  paymentMethod: PaymentMethod;
   address?: string;
   phone: string;
   name: string;
-  status: 'pending' | 'preparing' | 'ready' | 'delivering' | 'completed';
+  status: OrderStatus;
   createdAt: string;
   loyaltyPointsUsed: number;
   loyaltyPointsEarned: number;
 }
 
-export interface UserInfo {
-  name: string;
-  phone: string;
-  address?: string;
+export type LoyaltyTransactionType = 'earned' | 'spent';
+
+export interface LoyaltyTransaction {
+  id: string;
+  type: LoyaltyTransactionType;
+  amount: number;
+  description: string;
+  date: string;
 }
 
 export interface ChatMessage {
@@ -52,11 +72,9 @@ export interface ChatMessage {
   timestamp: string;
 }
 
-export interface LoyaltyTransaction {
+export interface Category {
   id: string;
-  type: 'earned' | 'spent';
-  amount: number;
-  description: string;
-  date: string;
+  name: string;
+  emoji: string;
 }
 
