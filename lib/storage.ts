@@ -1,106 +1,128 @@
-import { CartItem, Order, UserInfo, ChatMessage, LoyaltyTransaction } from './types';
+import {
+  CartItem,
+  Order,
+  UserInfo,
+  LoyaltyTransaction,
+  ChatMessage,
+} from './types';
 
-const STORAGE_KEYS = {
-  CART: 'coffee_cart',
-  ORDERS: 'coffee_orders',
-  USER_INFO: 'coffee_user_info',
-  CHAT_MESSAGES: 'coffee_chat_messages',
-  LOYALTY_POINTS: 'coffee_loyalty_points',
-  LOYALTY_TRANSACTIONS: 'coffee_loyalty_transactions',
-};
+const CART_KEY = 'coffee_cart';
+const ORDERS_KEY = 'coffee_orders';
+const USER_INFO_KEY = 'coffee_user';
+const LOYALTY_POINTS_KEY = 'coffee_loyalty_points';
+const LOYALTY_TRANSACTIONS_KEY = 'coffee_loyalty_transactions';
+const CHAT_MESSAGES_KEY = 'coffee_chat_messages';
 
-// Cart
-export const getCart = (): CartItem[] => {
-  if (typeof window === 'undefined') return [];
-  const data = localStorage.getItem(STORAGE_KEYS.CART);
-  return data ? JSON.parse(data) : [];
-};
+const memoryStore: Record<string, unknown> = {};
 
-export const saveCart = (cart: CartItem[]): void => {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(cart));
-};
+function isBrowser() {
+  return typeof window !== 'undefined' && typeof localStorage !== 'undefined';
+}
 
-export const clearCart = (): void => {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem(STORAGE_KEYS.CART);
-};
+function readItem<T>(key: string, fallback: T): T {
+  if (isBrowser()) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) {
+        return fallback;
+      }
+      return JSON.parse(raw) as T;
+    } catch {
+      return fallback;
+    }
+  }
+  if (memoryStore[key] === undefined) {
+    memoryStore[key] = fallback;
+  }
+  return memoryStore[key] as T;
+}
 
-// Orders
-export const getOrders = (): Order[] => {
-  if (typeof window === 'undefined') return [];
-  const data = localStorage.getItem(STORAGE_KEYS.ORDERS);
-  return data ? JSON.parse(data) : [];
-};
+function writeItem<T>(key: string, value: T) {
+  if (isBrowser()) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch {
+      // ignore storage quota errors
+    }
+  } else {
+    memoryStore[key] = value;
+  }
+}
 
-export const saveOrder = (order: Order): void => {
-  if (typeof window === 'undefined') return;
+export function getCart(): CartItem[] {
+  return readItem<CartItem[]>(CART_KEY, []);
+}
+
+export function saveCart(cart: CartItem[]) {
+  writeItem(CART_KEY, cart);
+}
+
+export function clearCart() {
+  writeItem<CartItem[]>(CART_KEY, []);
+}
+
+export function getOrders(): Order[] {
+  return readItem<Order[]>(ORDERS_KEY, []);
+}
+
+export function saveOrder(order: Order) {
   const orders = getOrders();
-  orders.unshift(order);
-  localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
-};
+  const updatedOrders = [...orders, order];
+  writeItem(ORDERS_KEY, updatedOrders);
+}
 
-// User Info
-export const getUserInfo = (): UserInfo | null => {
-  if (typeof window === 'undefined') return null;
-  const data = localStorage.getItem(STORAGE_KEYS.USER_INFO);
-  return data ? JSON.parse(data) : null;
-};
+export function getUserInfo(): UserInfo | null {
+  return readItem<UserInfo | null>(USER_INFO_KEY, null);
+}
 
-export const saveUserInfo = (info: UserInfo): void => {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(STORAGE_KEYS.USER_INFO, JSON.stringify(info));
-};
+export function saveUserInfo(userInfo: UserInfo) {
+  writeItem(USER_INFO_KEY, userInfo);
+}
 
-// Chat Messages
-export const getChatMessages = (): ChatMessage[] => {
-  if (typeof window === 'undefined') return [];
-  const data = localStorage.getItem(STORAGE_KEYS.CHAT_MESSAGES);
-  return data ? JSON.parse(data) : [];
-};
+export function getLoyaltyPoints(): number {
+  return readItem<number>(LOYALTY_POINTS_KEY, 100);
+}
 
-export const saveChatMessage = (message: ChatMessage): void => {
-  if (typeof window === 'undefined') return;
-  const messages = getChatMessages();
-  messages.push(message);
-  localStorage.setItem(STORAGE_KEYS.CHAT_MESSAGES, JSON.stringify(messages));
-};
+export function setLoyaltyPoints(value: number) {
+  writeItem(LOYALTY_POINTS_KEY, Math.max(0, value));
+}
 
-// Loyalty Points
-export const getLoyaltyPoints = (): number => {
-  if (typeof window === 'undefined') return 0;
-  const data = localStorage.getItem(STORAGE_KEYS.LOYALTY_POINTS);
-  return data ? parseInt(data, 10) : 100; // Начальные баллы для демо
-};
-
-export const setLoyaltyPoints = (points: number): void => {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(STORAGE_KEYS.LOYALTY_POINTS, points.toString());
-};
-
-export const addLoyaltyPoints = (points: number): void => {
+export function addLoyaltyPoints(amount: number) {
+  if (amount <= 0) return;
   const current = getLoyaltyPoints();
-  setLoyaltyPoints(current + points);
-};
+  setLoyaltyPoints(current + amount);
+}
 
-export const subtractLoyaltyPoints = (points: number): void => {
+export function subtractLoyaltyPoints(amount: number) {
+  if (amount <= 0) return;
   const current = getLoyaltyPoints();
-  setLoyaltyPoints(Math.max(0, current - points));
-};
+  setLoyaltyPoints(Math.max(0, current - amount));
+}
 
-// Loyalty Transactions
-export const getLoyaltyTransactions = (): LoyaltyTransaction[] => {
-  if (typeof window === 'undefined') return [];
-  const data = localStorage.getItem(STORAGE_KEYS.LOYALTY_TRANSACTIONS);
-  return data ? JSON.parse(data) : [];
-};
+export function getLoyaltyTransactions(): LoyaltyTransaction[] {
+  return readItem<LoyaltyTransaction[]>(LOYALTY_TRANSACTIONS_KEY, []);
+}
 
-export const saveLoyaltyTransaction = (transaction: LoyaltyTransaction): void => {
-  if (typeof window === 'undefined') return;
+export function addLoyaltyTransaction(transaction: LoyaltyTransaction) {
   const transactions = getLoyaltyTransactions();
-  transactions.unshift(transaction);
-  localStorage.setItem(STORAGE_KEYS.LOYALTY_TRANSACTIONS, JSON.stringify(transactions));
-};
+  writeItem(LOYALTY_TRANSACTIONS_KEY, [transaction, ...transactions]);
+}
 
-export const addLoyaltyTransaction = saveLoyaltyTransaction;
+export function getChatMessages(): ChatMessage[] {
+  return readItem<ChatMessage[]>(CHAT_MESSAGES_KEY, []);
+}
+
+export function saveChatMessage(message: ChatMessage) {
+  const messages = getChatMessages();
+  writeItem(CHAT_MESSAGES_KEY, [...messages, message]);
+}
+
+export function initDefaultStorage() {
+  readItem<CartItem[]>(CART_KEY, []);
+  readItem<Order[]>(ORDERS_KEY, []);
+  readItem<UserInfo | null>(USER_INFO_KEY, null);
+  readItem<number>(LOYALTY_POINTS_KEY, 100);
+  readItem<LoyaltyTransaction[]>(LOYALTY_TRANSACTIONS_KEY, []);
+  readItem<ChatMessage[]>(CHAT_MESSAGES_KEY, []);
+}
 
